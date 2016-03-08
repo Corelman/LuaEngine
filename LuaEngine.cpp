@@ -619,10 +619,7 @@ bool Eluna::RunScript(LuaScriptLoader& loader)
 
     // Sandbox protection - before script execution
     if (safe_mode)
-    {
-        lua_getglobal(L, ELUNA_SAFE_MODE_ENV);
-        lua_setupvalue(L, -2, 1); // First upvalue of file main chunk is environment
-    }
+        EnableSandboxForCall(L);
 
     if (ExecuteCall(0, 1))
     {
@@ -1455,6 +1452,12 @@ void Eluna::PushInstanceData(lua_State* L, ElunaInstanceAI* ai, bool incrementCo
 
     if (incrementCounter)
         ++push_counter;
+}
+
+void Eluna::EnableSandboxForCall(lua_State* state)
+{
+    lua_getglobal(state, ELUNA_SAFE_MODE_ENV);
+    lua_setupvalue(state, -2, 1); // First upvalue of file main chunk is environment
 }
 
 bool Eluna::IsSandboxed() const

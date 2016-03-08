@@ -302,7 +302,13 @@ public:
     static std::thread::id GetMainThreadId() { return main_thread_id; }
     bool IsSafeMode() const { return safe_mode; }
     /*
-     * Returns true iif the function at $funcindex is sandboxed
+     * Before call stack: LUA function
+     * After call stack: LUA function (with upvalue '_ENV' changed)
+     */
+    static void EnableSandboxForCall(lua_State* state);
+    /*
+     * When a C function is called from the LUA
+     * IsSandboxed returns true if the LUA parent is sandboxed.
      */
     bool IsSandboxed() const;
 
