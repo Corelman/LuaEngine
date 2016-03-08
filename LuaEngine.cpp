@@ -516,8 +516,8 @@ static bool ScriptPathComparator(const LuaScript& first, const LuaScript& second
 
 void Eluna::LoadAllSQLScripts() 
 {
-    //Load all Scripts 
-    QueryResult *result = WorldDatabase.PQuery("SELECT ScriptId, ScriptContent FROM lua_scripts");
+    // Load all Scripts
+    QueryResult *result = WorldDatabase.PQuery("SELECT id, script FROM lua_scripts WHERE status = 'Enabled'");
     int counter = 0;
     if(result) 
     {
@@ -538,7 +538,7 @@ void Eluna::LoadAllSQLScripts()
     counter = 0;
 	
     //fill mappings
-    result = WorldDatabase.PQuery("SELECT MapId,ScriptId FROM lua_scripts_maps ORDER BY MapId");
+    result = WorldDatabase.PQuery("SELECT map_id, script_id FROM lua_map_scripts ORDER BY map_id");
     if(result) 
     {
         do 
