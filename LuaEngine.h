@@ -312,6 +312,12 @@ public:
      */
     bool IsSandboxed() const;
 
+    // All SQL Lua Scripts
+    // ScriptId --> ScriptContent
+    static std::unordered_map<uint32, std::string> luaScriptsSQL;
+    // MapId --> ScriptIds 
+    static std::unordered_map<uint32, std::unordered_set<uint32>> luaScriptMapping;
+	
     static Eluna* GEluna;
     static MsgQueue msgque;
     std::thread::id current_thread_id;
@@ -426,6 +432,9 @@ public:
     void PushInstanceData(lua_State* L, ElunaInstanceAI* ai, bool incrementCounter = true);
 
     void RunScripts();
+    void RunSQLScript(uint32 ScriptId);
+    void RunSQLMapScripts(uint32 MapId);	
+    void LoadAllSQLScripts();
     /*
      * Executes scripts in given ScriptList $scripts (map scriptname => scriptpath).
      * All scripts which we attempt to load are inserted in $loaded (even failed ones)

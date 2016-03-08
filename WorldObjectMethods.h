@@ -777,7 +777,7 @@ namespace LuaWorldObject
             Eluna::GetEluna(L)->GetEventMgr()->AddEvent(obj->GET_GUID(), functionRef, delay, repeats);
             Eluna::Push(L, functionRef);
         }
-        return 1;
+        return 2;
     }
 
     /**
