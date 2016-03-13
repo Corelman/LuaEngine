@@ -2909,18 +2909,22 @@ namespace LuaGlobalFunctions
      */
     int CreateBotSession(lua_State* L)
     {
-        QueryResult* result = LoginDatabase.PQuery("SELECT MAX(id) FROM account");
-        if (result)
+        static uint32 next_bot_account_id = 0;
+        if (!next_bot_account_id)
         {
+            QueryResult* result = LoginDatabase.PQuery("SELECT MAX(id) FROM account");
+            if (!result)
+            {
+                Eluna::Push(L, uint32(0));
+                return 1;
+            }
             Field* fields = result->Fetch();
-            uint32 account = fields[0].GetUInt32()+1;
+            next_bot_account_id = fields[0].GetUInt32()+10000; // Allow us some margin
             delete result;
-            ePlayerBotMgr->CreateBot(account);
-            Eluna::Push(L, account);
-            return 1;
         }
-
-        Eluna::Push(L, uint32(0));
+        uint32 account = next_bot_account_id++;
+        ePlayerBotMgr->CreateBot(account);
+        Eluna::Push(L, account);
         return 1;
     }
 

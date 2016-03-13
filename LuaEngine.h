@@ -159,6 +159,7 @@ class LuaFileScriptLoader: public LuaScriptLoader
 public:
     LuaFileScriptLoader(const char* scriptname, const char* filename);
     virtual const char* Read(size_t& size);
+    bool ok() const { return _file != nullptr; }
 protected:
     FILE*   _file;
     char    _rbuf[1024];

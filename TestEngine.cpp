@@ -2,7 +2,6 @@
 
 TestEngine::TestEngine(): Eluna(nullptr), L2(nullptr)
 {
-    StartTests();
 }
 
 TestEngine::~TestEngine()
@@ -16,7 +15,12 @@ void TestEngine::StartTests()
 
     const char* test_framework_file = "test_framework";
     // Load testing framework first
-    LuaFileScriptLoader loader(test_framework_file, (lua_folderpath + "/" + test_framework_file + ".lua").c_str());
+    LuaFileScriptLoader loader(test_framework_file, (lua_folderpath + "/extensions/" + test_framework_file + ".lua").c_str());
+    if (!loader.ok())
+    {
+        sLog.outError("Tests: Unable to open file %s", test_framework_file);
+        return;
+    }
     bool run_framework_result = RunScript(loader);
     lua_pop(L, 1);
     if (!run_framework_result)
@@ -27,9 +31,17 @@ void TestEngine::StartTests()
     for (auto itr = Eluna::luaTestsSQL.begin(); itr != Eluna::luaTestsSQL.end(); ++itr)
         RunSQLScript(itr->first, itr->second);
 
+    const char* run_tests_function = "RunAllTests";
+
     // Now we call "RunAllTests" function in a coroutine
     L2 = lua_newthread(L);
-    lua_getglobal(L2, "RunAllTests");
+    lua_getglobal(L2, run_tests_function);
+    if (!lua_isfunction(L2, 1))
+    {
+        sLog.outError("Tests: Function %s is not defined. Unable to start tests.", run_tests_function);
+        lua_close(L2);
+        L2 = nullptr;
+    }
 }
 
 void TestEngine::Update()
@@ -45,5 +57,7 @@ void TestEngine::Update()
         sLog.outString("Tests finished");
     else
         sLog.outError("Tests interrupted by errors");
+
+    // L2 is already freed up. No need to call lua_close.
     L2 = nullptr;
 }
