@@ -565,14 +565,9 @@ void Eluna::RunSQLMapScripts(uint32 mapId)
 {
     ELUNA_LOG_DEBUG("[Eluna]: Looking for Cached LUA Scripts in Map: %u", mapId);
     auto search = Eluna::luaScriptMapping.find(mapId);
-    if (search != Eluna::luaScriptMapping.end()) 
-    {
-        for (auto itr = Eluna::luaScriptMapping[mapId].begin(); itr != Eluna::luaScriptMapping[mapId].end(); ++itr) 
-        {
+    if (search != Eluna::luaScriptMapping.end())
+        for (auto itr = Eluna::luaScriptMapping[mapId].begin(); itr != Eluna::luaScriptMapping[mapId].end(); ++itr)
             RunSQLScript(*itr);
-        }
-		
-    }
 }
 
 void Eluna::RunSQLScript(uint32 scriptId) 
@@ -600,21 +595,11 @@ void Eluna::RunSQLScript(uint32 scriptId)
     int base = lua_gettop(L);
 	
     uint32 oldMSTime = ElunaUtil::GetCurrTime();
-    std::unordered_map<std::string, std::string> loaded; // filename, path
     lua_getglobal(L, "package");
     // Stack: package
     luaL_getsubtable(L, -1, "loaded");
     // Stack: package, modules
     int modules = lua_gettop(L);
-    
-    // Check that no duplicate names exist
-    if (loaded.find(scriptName) != loaded.end())
-    {
-        ELUNA_LOG_ERROR("[Eluna]: Error loading `%s`. File with same name already loaded from `%s`, rename either file", scriptName.c_str(), loaded[scriptName].c_str());
-        lua_pop(L, 2);
-        return;
-    }
-    loaded[scriptName] = scriptName;
     
     lua_getfield(L, modules, scriptName.c_str());
     // Stack: package, modules, module
