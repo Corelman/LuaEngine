@@ -159,6 +159,7 @@ class LuaFileScriptLoader: public LuaScriptLoader
 public:
     LuaFileScriptLoader(const char* scriptname, const char* filename);
     virtual const char* Read(size_t& size);
+    bool ok() const { return _file != nullptr; }
 protected:
     FILE*   _file;
     char    _rbuf[1024];
@@ -213,7 +214,7 @@ public:
         }
     };
 
-private:
+protected:
     static std::atomic<bool> reload;
     static std::atomic<bool> initialized;
     static LockType lock;
@@ -314,7 +315,9 @@ public:
 
     // All SQL Lua Scripts
     // ScriptId --> ScriptContent
-    static std::unordered_map<uint32, std::string> luaScriptsSQL;
+    typedef std::unordered_map<uint32, std::string> ScriptsMap;
+    static ScriptsMap luaScriptsSQL;
+    static ScriptsMap luaTestsSQL;
     // MapId --> ScriptIds 
     static std::unordered_map<uint32, std::unordered_set<uint32>> luaScriptMapping;
 	
@@ -432,8 +435,9 @@ public:
     void PushInstanceData(lua_State* L, ElunaInstanceAI* ai, bool incrementCounter = true);
 
     void RunScripts();
-    void RunSQLScript(uint32 ScriptId);
-    void RunSQLMapScripts(uint32 MapId);	
+    void RunSQLMapScripts(uint32 MapId);
+    void RunSQLScript(uint32 scriptId);
+    void RunSQLScript(uint32 scriptId, std::string const& scriptContent);
     void LoadAllSQLScripts();
     /*
      * Executes scripts in given ScriptList $scripts (map scriptname => scriptpath).
