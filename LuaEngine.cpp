@@ -377,7 +377,8 @@ void Eluna::DestroyBindStores()
     CreatureUniqueBindings = nullptr;
 }
 
-std::unordered_map<uint32, std::string> Eluna::luaScriptsSQL;
+Eluna::ScriptsMap Eluna::luaScriptsSQL;
+Eluna::ScriptsMap Eluna::luaTestsSQL;
 std::unordered_map<uint32, std::unordered_set<uint32>> Eluna::luaScriptMapping;
 
 void Eluna::AddScriptPath(std::string filename, const std::string& fullpath)
@@ -517,7 +518,7 @@ static bool ScriptPathComparator(const LuaScript& first, const LuaScript& second
 void Eluna::LoadAllSQLScripts() 
 {
     // Load all Scripts
-    QueryResult *result = WorldDatabase.PQuery("SELECT id, script FROM lua_scripts WHERE status = 'Enabled'");
+    QueryResult *result = WorldDatabase.PQuery("SELECT id, script, is_test FROM lua_scripts WHERE status = 'Enabled'");
     int counter = 0;
     if(result) 
     {
@@ -526,9 +527,14 @@ void Eluna::LoadAllSQLScripts()
             Field* fields = result->Fetch();
             uint32 scriptId = fields[0].GetUInt32();
             std::string content = fields[1].GetCppString();
-            Eluna::luaScriptsSQL[scriptId] = content;
+            bool is_test = fields[2].GetBool();
+            if (is_test)
+                Eluna::luaTestsSQL[scriptId] = content;
+            else
+                Eluna::luaScriptsSQL[scriptId] = content;
+
             counter++;
-	}
+        }
         while(result->NextRow());
 		
         delete(result);
@@ -543,8 +549,8 @@ void Eluna::LoadAllSQLScripts()
     {
         do 
         {
-	    Field* fields = result->Fetch();
-			
+            Field* fields = result->Fetch();
+
             uint32 mapId = fields[0].GetUInt32();
             uint32 scriptId = fields[1].GetUInt32();
 			
@@ -568,58 +574,57 @@ void Eluna::RunSQLMapScripts(uint32 mapId)
     if (search != Eluna::luaScriptMapping.end())
         for (auto itr = Eluna::luaScriptMapping[mapId].begin(); itr != Eluna::luaScriptMapping[mapId].end(); ++itr)
             RunSQLScript(*itr);
+    OnLuaStateOpen();
 }
 
 void Eluna::RunSQLScript(uint32 scriptId) 
 {
     if (!IsEnabled())
         return;
-	
-    char numstr[21]; // enough to hold all numbers up to 64-bits
 
-    std::string scriptPrefix = "SQLScript_";
-    std::string scriptName = scriptPrefix + ACE_OS::itoa(scriptId, numstr, 10);
-    std::string scriptContent = "";
-	
     auto search = Eluna::luaScriptsSQL.find(scriptId);
     if (search != Eluna::luaScriptsSQL.end())
-    {
-        scriptContent = Eluna::luaScriptsSQL[scriptId];
-    }
+        RunSQLScript(scriptId, search->second);
     else
     {
-        ELUNA_LOG_ERROR("[Eluna]: Error loading `%s`. LUA Script with ID `%u` could not be found in memory.", scriptName.c_str(), scriptId);
+        ELUNA_LOG_ERROR("[Eluna]: Error loading script #%u. LUA Script with ID `%u` could not be found in DB Table.", scriptId, scriptId);
         return;
     }
+}
+
+void Eluna::RunSQLScript(uint32 scriptId, std::string const& scriptContent)
+{
+    char numstr[21]; // enough to hold all numbers up to 64-bits
+    char scriptName[128];
+
+    sprintf(scriptName, "SQLScript_%08u", scriptId);
 	
     int base = lua_gettop(L);
-	
-    uint32 oldMSTime = ElunaUtil::GetCurrTime();
     lua_getglobal(L, "package");
     // Stack: package
     luaL_getsubtable(L, -1, "loaded");
     // Stack: package, modules
     int modules = lua_gettop(L);
-    
-    lua_getfield(L, modules, scriptName.c_str());
+
+    lua_getfield(L, modules, scriptName);
     // Stack: package, modules, module
     if (!lua_isnoneornil(L, -1))
     {
         lua_pop(L, 1);
-        ELUNA_LOG_DEBUG("[Eluna]: `%s` was already loaded or required", scriptName.c_str());
+        ELUNA_LOG_DEBUG("[Eluna]: `%s` was already loaded or required", scriptName);
         lua_pop(L, 2);
         return;
     }
     lua_pop(L, 1);
 	
-    LuaStringScriptLoader loader(scriptName.c_str(), scriptContent);
+    LuaStringScriptLoader loader(scriptName, scriptContent);
     if (RunScript(loader))
     {
         // Stack: package, modules, result
-        lua_setfield(L, modules, scriptName.c_str()); // sets modules[$filename] = callresult
+        lua_setfield(L, modules, scriptName); // sets modules[$filename] = callresult
         // Stack: package, modules
         ASSERT(lua_gettop(L) == base + 2);
-        ELUNA_LOG_DEBUG("[Eluna]: Successfully loaded `%s`", scriptName.c_str());
+        ELUNA_LOG_DEBUG("[Eluna]: Successfully loaded `%s`", scriptName);
     } 
     else
     {
@@ -629,8 +634,6 @@ void Eluna::RunSQLScript(uint32 scriptId)
     
     // Stack: package, modules
     lua_pop(L, 2);
-    OnLuaStateOpen();
-	
 }
 
 void Eluna::RunScripts()
