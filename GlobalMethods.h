@@ -2903,6 +2903,135 @@ namespace LuaGlobalFunctions
     }
 
     /**
+     * Creates a bot session.
+     *
+     * @return int account : account of the newly created bot session (0 if fails)
+     */
+    int CreateBotSession(lua_State* L)
+    {
+        QueryResult* result = LoginDatabase.PQuery("SELECT MAX(id) FROM account");
+        if (result)
+        {
+            Field* fields = result->Fetch();
+            uint32 account = fields[0].GetUInt32()+1;
+            delete result;
+            ePlayerBotMgr->CreateBot(account);
+            Eluna::Push(L, account);
+            return 1;
+        }
+
+        Eluna::Push(L, uint32(0));
+        return 1;
+    }
+
+    /**
+     * Creates a new player.
+     * The session must be logged in.
+     *
+     * @param int account_id
+     * @param string name
+     * @param int race
+     * @param int class
+     * @return int guid : guid of the newly created player
+     *      or < 0 if we could not create the character: name already taken, session not online ...
+     */
+    int CreatePlayer(lua_State* L)
+    {
+        uint32 account_id = Eluna::CHECKVAL<uint32>(L, 1);
+        std::string name = Eluna::CHECKVAL<std::string>(L, 2);
+        uint32 race_ = Eluna::CHECKVAL<uint32>(L, 3);
+        uint32 class_ = Eluna::CHECKVAL<uint32>(L, 4);
+        uint32 skin = 0, face = 0, hairStyle = 0, hairColor = 0, facialHair = 0, outfitId = 0;
+
+        WorldSession* wsess = eWorld->FindSession(account_id);
+        if (!wsess || !normalizePlayerName(name) || sObjectMgr.GetPlayerGuidByName(name))
+        {
+            Eluna::Push(L, int32(-1));
+            return 1;
+        }
+
+        uint32 new_player_guid = eObjectMgr->GeneratePlayerLowGuid();
+        Player* pNewChar = new Player(wsess);
+        if (!pNewChar->Create(new_player_guid, name, race_, class_, urand(0, 1), skin, face, hairStyle, hairColor, facialHair, outfitId))
+        {
+            Eluna::Push(L, int32(-2));
+            return 1;
+        }
+
+        pNewChar->SetAtLoginFlag(AT_LOGIN_FIRST);
+        pNewChar->SaveToDB();
+
+        Eluna::Push(L, new_player_guid);
+        return 1;
+    }
+
+    /**
+     * Teleport an offline player to given location.
+     * The teleport destination should be valid coordinates.
+     * The player has to be offline.
+     *
+     * @param int player_guid
+     * @param int map_id
+     * @param float x
+     * @param float y
+     * @param float z
+     * @param float o
+     * @return bool status: true iff the operation succeeded.
+     */
+    int TeleportOfflinePlayer(lua_State* L)
+    {
+        uint32 player_guid = Eluna::CHECKVAL<uint32>(L, 1);
+        uint32 map_id = Eluna::CHECKVAL<uint32>(L, 2);
+        float coords[4];
+        for (int i = 0; i < 4; ++i)
+            coords[i] = Eluna::CHECKVAL<float>(L, 3+i);
+
+        // Player already in world
+        if (eObjectAccessor()FindPlayer(ObjectGuid(HIGHGUID_PLAYER, player_guid), false))
+        {
+            Eluna::Push(L, false);
+            return 1;
+        }
+
+        // Invalid coords
+        if (!MapManager::IsValidMapCoord(map_id, coords[0], coords[1], coords[2], coords[3]))
+        {
+            Eluna::Push(L, false);
+            return 1;
+        }
+
+        CharacterDatabase.PExecute("UPDATE characters SET map = %u, position_x = %f, position_y = %f, position_z = %f, orientation = %f",
+            map_id, coords[0], coords[1], coords[2], coords[3]);
+        Eluna::Push(L, true);
+        return 1;
+    }
+
+    /**
+     * Login a bot player.
+     * The bot session should be online, the player should exist already in DB.
+     *
+     * @param int account_id
+     * @param int player_guid
+     * @return bool status: true iff the operation succeeded
+     */
+    int LoginBotPlayer(lua_State* L)
+    {
+        uint32 account_id = Eluna::CHECKVAL<uint32>(L, 1);
+        uint32 player_guid = Eluna::CHECKVAL<uint32>(L, 2);
+
+        WorldSession* wsess = eWorld->FindSession(account_id);
+        if (!wsess)
+        {
+            Eluna::Push(L, false);
+            return 1;
+        }
+        bool result = ePlayerBotMgr->LoginBot(account_id, ObjectGuid(HIGHGUID_PLAYER, player_guid));
+
+        Eluna::Push(L, result);
+        return 1;
+    }
+
+    /**
      * Unregisters from a channel registered to with StateChannelRegister
      *
      * @param string channel : channel name to unregister from

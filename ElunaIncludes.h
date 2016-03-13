@@ -53,6 +53,7 @@
 #include "BattleGroundMgr.h"
 #include "SQLStorages.h"
 #include "revision.h"
+#include "PlayerBot/PlayerBotMgr.h"
 #endif
 
 #if (!defined(TBC) && !defined(CLASSIC))
@@ -108,6 +109,7 @@ typedef ThreatContainer::StorageType ThreatList;
 #define eObjectMgr              (&sObjectMgr)
 #define eAccountMgr             (&sAccountMgr)
 #define eAuctionMgr             (&sAuctionMgr)
+#define ePlayerBotMgr           (&sPlayerBotMgr)
 #define eObjectAccessor()       sObjectAccessor.
 #define SERVER_MSG_STRING       SERVER_MSG_CUSTOM
 #define TOTAL_LOCALES           MAX_LOCALE

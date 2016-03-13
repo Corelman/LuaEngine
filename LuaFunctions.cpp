@@ -136,13 +136,18 @@ ElunaFunction::ElunaRegister GlobalMethods[] =
     { NOT_IN_SAFEMODE,              "Ban", &LuaGlobalFunctions::Ban },
     { MTMAP_SAFE | NOT_IN_SAFEMODE, "SaveAllPlayers", &LuaGlobalFunctions::SaveAllPlayers },
     { MTMAP_SAFE | NOT_IN_SAFEMODE, "SendMail", &LuaGlobalFunctions::SendMail },
-    { FLAGS_NONE, "AddTaxiPath", &LuaGlobalFunctions::AddTaxiPath },
+    { FLAGS_NONE,                   "AddTaxiPath", &LuaGlobalFunctions::AddTaxiPath },
     { MTMAP_SAFE,                   "UintNew", &LuaGlobalFunctions::UintNew },
     { MTMAP_SAFE,                   "UintToString", &LuaGlobalFunctions::UintToString },
     { MTMAP_SAFE,                   "UintToHex", &LuaGlobalFunctions::UintToHex },
     { MTMAP_SAFE,                   "StateChannelSend", &LuaGlobalFunctions::StateChannelSend },
     { MTMAP_SAFE,                   "StateChannelRegister", &LuaGlobalFunctions::StateChannelRegister },
     { MTMAP_SAFE,                   "StateChannelUnregister", &LuaGlobalFunctions::StateChannelUnregister },
+    // PlayerBot system
+    { FLAGS_NONE,                   "CreateBotSession", &LuaGlobalFunctions::CreateBotSession },
+    { FLAGS_NONE,                   "CreatePlayer", &LuaGlobalFunctions::CreatePlayer },
+    { FLAGS_NONE,                   "TeleportOfflinePlayer", &LuaGlobalFunctions::TeleportOfflinePlayer },
+    { FLAGS_NONE,                   "LoginBotPlayer", &LuaGlobalFunctions::LoginBotPlayer },
 
     { FLAGS_NONE, nullptr, nullptr },
 };
